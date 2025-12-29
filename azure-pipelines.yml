@@ -51,6 +51,7 @@ jobs:
     displayName: 'Checkout GitOps Repo'
 
   # -------------------------------------
+   # -------------------------------------
   # Step 3: Generate KafkaTopic YAML
   # -------------------------------------
   - script: |
