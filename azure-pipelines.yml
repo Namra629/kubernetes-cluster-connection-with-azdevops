@@ -33,7 +33,7 @@ jobs:
 - job: KafkaTopicPipeline
   displayName: 'Kafka Topic CI/CD (GitHub App Auth)'
   pool:
-    vmImage: ubuntu-latest
+    vmImage: 'ubuntu-latest'
 
   steps:
   # -------------------------------------
@@ -51,24 +51,32 @@ jobs:
     displayName: 'Checkout GitOps Repo'
 
   # -------------------------------------
-   # -------------------------------------
+  # Step 3: Generate KafkaTopic YAML
+  # -------------------------------------
+    # -------------------------------------
+  # Step 3: Generate KafkaTopic YAML
+  # -------------------------------------
+    # -------------------------------------
   # Step 3: Generate KafkaTopic YAML
   # -------------------------------------
   - script: |
-      OUTPUT_DIR="kafka-topics/${ENVIRONMENT}"
-      mkdir -p ${OUTPUT_DIR}
+      set -e
 
-      cat > ${OUTPUT_DIR}/${TOPIC_NAME}.yaml <<EOF
-apiVersion: platform.confluent.io/v1
-kind: KafkaTopic
-metadata:
-  name: ${TOPIC_NAME}
-  namespace: confluent
-spec:
-  kafkaCluster: ${KAFKA_CLUSTER}
-  partitions: ${PARTITIONS}
-  replicas: ${REPLICAS}
-EOF
+      OUTPUT_DIR="kafka-topics/${ENVIRONMENT}"
+      mkdir -p "${OUTPUT_DIR}"
+
+      echo "apiVersion: platform.confluent.io/v1"              >  "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
+      echo "kind: KafkaTopic"                                  >> "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
+      echo "metadata:"                                         >> "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
+      echo "  name: ${TOPIC_NAME}"                             >> "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
+      echo "  namespace: confluent"                            >> "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
+      echo "spec:"                                             >> "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
+      echo "  kafkaCluster: ${KAFKA_CLUSTER}"                  >> "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
+      echo "  partitions: ${PARTITIONS}"                       >> "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
+      echo "  replicas: ${REPLICAS}"                           >> "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
+
+      echo "Generated file:"
+      cat "${OUTPUT_DIR}/${TOPIC_NAME}.yaml"
     displayName: 'Generate KafkaTopic YAML'
     env:
       TOPIC_NAME: ${{ parameters.topicName }}
@@ -76,6 +84,7 @@ EOF
       REPLICAS: ${{ parameters.replicas }}
       ENVIRONMENT: ${{ parameters.environment }}
       KAFKA_CLUSTER: ${{ parameters.kafkaCluster }}
+
 
   # -------------------------------------
   # Step 4: Deploy to Kubernetes
@@ -85,8 +94,8 @@ EOF
     inputs:
       connectionType: 'Kubernetes Service Connection'
       kubernetesServiceEndpoint: 'k8s-devops-service-conn'
-      namespace: confluent
-      command: apply
+      namespace: 'confluent'
+      command: 'apply'
       useConfigurationFile: true
       configuration: 'kafka-topics/${{ parameters.environment }}/${{ parameters.topicName }}.yaml'
 
@@ -94,12 +103,13 @@ EOF
   # Step 5: Commit & Push via GitHub App
   # -------------------------------------
   - script: |
-      cd $(Build.SourcesDirectory)/gitops
+      cd "$(Build.SourcesDirectory)/gitops"
+
       git config user.email "hafizanamrarasheed@gmail.com"
       git config user.name "Namra629"
 
-      git add kafka-topics/${ENVIRONMENT}/${TOPIC_NAME}.yaml
-      git commit -m "Add Kafka topic ${TOPIC_NAME} (${ENVIRONMENT})" || echo "No changes"
+      git add "kafka-topics/${ENVIRONMENT}/${TOPIC_NAME}.yaml"
+      git commit -m "Add Kafka topic ${TOPIC_NAME} (${ENVIRONMENT})" || echo "No changes to commit"
       git push origin HEAD:main
     displayName: 'Push to GitOps Repo'
     env:
