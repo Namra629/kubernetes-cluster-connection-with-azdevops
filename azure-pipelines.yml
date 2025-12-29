@@ -9,6 +9,7 @@ pr: none
 parameters:
   - name: topicName
     type: string
+    default: my-test-name
   - name: partitions
     type: number
     default: 3
