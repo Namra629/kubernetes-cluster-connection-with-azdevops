@@ -1,0 +1,106 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger: none
+pr: none
+
+parameters:
+  - name: topicName
+    type: string
+  - name: partitions
+    type: number
+    default: 3
+  - name: replicas
+    type: number
+    default: 2
+  - name: environment
+    type: string
+    default: dev
+  - name: kafkaCluster
+    type: string
+    default: my-cluster
+
+resources:
+  repositories:
+    - repository: gitops
+      type: github
+      name: org-name/gitops-repo
+      endpoint: github-app-connection
+
+jobs:
+- job: KafkaTopicPipeline
+  displayName: 'Kafka Topic CI/CD (GitHub App Auth)'
+  pool:
+    vmImage: ubuntu-latest
+
+  steps:
+  # -------------------------------------
+  # Step 1: Checkout pipeline repo
+  # -------------------------------------
+  - checkout: self
+    clean: true
+
+  # -------------------------------------
+  # Step 2: Checkout GitOps repo (GitHub App)
+  # -------------------------------------
+  - checkout: gitops
+    persistCredentials: true
+    clean: true
+    displayName: 'Checkout GitOps Repo'
+
+  # -------------------------------------
+  # Step 3: Generate KafkaTopic YAML
+  # -------------------------------------
+  - script: |
+      OUTPUT_DIR="kafka-topics/${ENVIRONMENT}"
+      mkdir -p ${OUTPUT_DIR}
+
+      cat > ${OUTPUT_DIR}/${TOPIC_NAME}.yaml <<EOF
+apiVersion: platform.confluent.io/v1
+kind: KafkaTopic
+metadata:
+  name: ${TOPIC_NAME}
+  namespace: confluent
+spec:
+  kafkaCluster: ${KAFKA_CLUSTER}
+  partitions: ${PARTITIONS}
+  replicas: ${REPLICAS}
+EOF
+    displayName: 'Generate KafkaTopic YAML'
+    env:
+      TOPIC_NAME: ${{ parameters.topicName }}
+      PARTITIONS: ${{ parameters.partitions }}
+      REPLICAS: ${{ parameters.replicas }}
+      ENVIRONMENT: ${{ parameters.environment }}
+      KAFKA_CLUSTER: ${{ parameters.kafkaCluster }}
+
+  # -------------------------------------
+  # Step 4: Deploy to Kubernetes
+  # -------------------------------------
+  - task: Kubernetes@1
+    displayName: 'Apply KafkaTopic'
+    inputs:
+      connectionType: 'Kubernetes Service Connection'
+      kubernetesServiceEndpoint: 'k8s-devops-service-conn'
+      namespace: confluent
+      command: apply
+      useConfigurationFile: true
+      configuration: 'kafka-topics/${{ parameters.environment }}/${{ parameters.topicName }}.yaml'
+
+  # -------------------------------------
+  # Step 5: Commit & Push via GitHub App
+  # -------------------------------------
+  - script: |
+      cd $(Build.SourcesDirectory)/gitops
+      git config user.email "hafizanamrarasheed@gmail.com"
+      git config user.name "Namra629"
+
+      git add kafka-topics/${ENVIRONMENT}/${TOPIC_NAME}.yaml
+      git commit -m "Add Kafka topic ${TOPIC_NAME} (${ENVIRONMENT})" || echo "No changes"
+      git push origin HEAD:main
+    displayName: 'Push to GitOps Repo'
+    env:
+      TOPIC_NAME: ${{ parameters.topicName }}
+      ENVIRONMENT: ${{ parameters.environment }}
