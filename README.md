@@ -19,6 +19,14 @@ Apply all the yaml files.
 
       kubectl apply -f yaml-file-name
 
+See the kube config file to have the server URL.
+
+      kubectl config view --minify -o json
+
+Get the secret as well.
+
+     kubectl get secret sa-azure-devops-secret  -o json
+
 On Azure DevOps, create a kubernetes service connection using the service account.
 
 <img width="557" height="793" alt="image" src="https://github.com/user-attachments/assets/9568719f-7d7b-4cc3-8adf-a391a2607e8b" />
