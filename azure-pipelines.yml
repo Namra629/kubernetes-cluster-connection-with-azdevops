@@ -101,18 +101,4 @@ jobs:
       configuration: 'kafka-topics/${{ parameters.environment }}/${{ parameters.topicName }}.yaml'
 
   # -------------------------------------
-  # Step 5: Commit & Push via GitHub App
-  # -------------------------------------
-  - script: |
-      cd "$(Build.SourcesDirectory)/gitops"
-
-      git config user.email "hafizanamrarasheed@gmail.com"
-      git config user.name "Namra629"
-
-      git add "kafka-topics/${ENVIRONMENT}/${TOPIC_NAME}.yaml"
-      git commit -m "Add Kafka topic ${TOPIC_NAME} (${ENVIRONMENT})" || echo "No changes to commit"
-      git push origin HEAD:main
-    displayName: 'Push to GitOps Repo'
-    env:
-      TOPIC_NAME: ${{ parameters.topicName }}
-      ENVIRONMENT: ${{ parameters.environment }}
+  
