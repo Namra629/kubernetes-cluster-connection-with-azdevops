@@ -33,3 +33,4 @@ On Azure DevOps, create a kubernetes service connection using the service accoun
       
 
 
+Reference:  https://medium.com/@varun.thantry07/how-to-create-a-kubernetes-service-connection-in-azure-devops-using-a-service-account-41c785f42f09
